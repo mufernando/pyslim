@@ -294,8 +294,9 @@ class SlimTreeSequence(tskit.TreeSequence):
             pass
         return mut
 
-    def recapitate(self, recombination_rate, keep_first_generation=False,
-                   population_configurations=None, **kwargs):
+    def recapitate(self, recombination_rate, recombination_map=None,
+                   keep_first_generation=False, population_configurations=None, 
+                   **kwargs):
         '''
         Returns a "recapitated" tree sequence, by using msprime to run a
         coalescent simulation from the "top" of this tree sequence, i.e.,
@@ -323,7 +324,15 @@ class SlimTreeSequence(tskit.TreeSequence):
            [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]
 
         :param float recombination_rate: The recombination rate - only a constant
-            recombination rate is allowed.
+            recombination rate is allowed. This parameter cannot 
+        be used along with the ``recombination_map`` parameter, as these
+        values are encoded within the map.
+        :param recombination_map: The map describing the changing rates of 
+        recombination along the simulated chromosome. This parameter cannot 
+        be used along with the ``recombination_rate`` parameter, as these
+        values are encoded within the map. Defaults to a uniform rate as
+        described in the ``recombination_rate`` parameter if not specified.
+        :type recombination_map: :class:`.RecombinationMap`
         :param bool keep_first_generation: Whether to keep the individuals (and genomes)
             corresponding to the first SLiM generation in the resulting tree sequence
         :param list population_configurations: See :meth:`msprime.simulate` for
@@ -331,9 +340,12 @@ class SlimTreeSequence(tskit.TreeSequence):
             and the same effective population size.
         :param dict kwargs: Any other arguments to :meth:`msprime.simulate`.
         '''
-        recomb = msprime.RecombinationMap(positions = [0.0, self.sequence_length],
+        if not recombination_map:
+            recomb = msprime.RecombinationMap(positions = [0.0, self.sequence_length],
                                           rates = [recombination_rate, 0.0],
                                           num_loci = int(self.sequence_length))
+        else:
+            recomb = recombination_map
 
         if population_configurations is None:
             population_configurations = [msprime.PopulationConfiguration()
